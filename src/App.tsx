@@ -6,9 +6,12 @@ import { QRCodeCanvas } from "qrcode.react";
 const socket = io("http://localhost:5000");
 
 const App = () => {
-  const [canvas, setCanvas] = useState(null);
+  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
   const [status, setStatus] = useState("Not Synced");
-  const [pairingCode, setPairingCode] = useState(null);
+  // const [pairingCode, setPairingCode] = useState<string | null>(null); // Keep it if you plan to use it.
+  const pairingCode = null
+
+
 
   useEffect(() => {
     const newCanvas = new fabric.Canvas("canvas", {
@@ -42,6 +45,7 @@ const App = () => {
   }, []);
 
   const syncContent = () => {
+    if (!canvas) return; // Ensure canvas exists
     const content = JSON.stringify(canvas.toJSON());
     fetch("http://localhost:5000/content", {
       method: "POST",
@@ -52,6 +56,7 @@ const App = () => {
   };
 
   const addText = () => {
+    if (!canvas) return;
     const text = new fabric.Text("Custom Header", {
       left: 100,
       top: 100,
@@ -61,15 +66,20 @@ const App = () => {
     canvas.add(text);
   };
 
-  const addImage = (event) => {
-    const file = event.target.files[0];
+
+  const addImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file || !canvas) return;
 
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = function (e: ProgressEvent<FileReader>) {
+      if (!e.target?.result) return; // Ensure the result exists
+
       const imgElement = document.createElement("img");
-      imgElement.src = e.target.result;
+      imgElement.src = e.target.result as string; // ✅ This is the correct placement
+
       imgElement.onload = () => {
+        if (!canvas) return;
         const imgInstance = new fabric.Image(imgElement, {
           left: 150,
           top: 150,
@@ -77,13 +87,16 @@ const App = () => {
           scaleY: 0.5,
         });
         canvas.add(imgInstance);
-        canvas.renderAll(); // Ensure the image appears
+        canvas.renderAll();
       };
     };
+
     reader.readAsDataURL(file);
   };
 
+
   const addClock = () => {
+    if (!canvas) return;
     const clockText = new fabric.Text(new Date().toLocaleTimeString(), {
       left: 200,
       top: 200,
@@ -97,7 +110,9 @@ const App = () => {
     }, 1000);
   };
 
+
   const addWeatherWidget = () => {
+    if (!canvas) return
     const weatherText = new fabric.Text("Weather: 25°C Sunny", {
       left: 300,
       top: 50,
